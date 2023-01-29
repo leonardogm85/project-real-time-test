@@ -1,0 +1,143 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Real-Time Test</title>
+    <style>
+        .form {
+            background-color: lightyellow;
+        }
+
+        .form-item {
+            padding: 10px;
+        }
+
+        .form-text {
+            width: 300px;
+        }
+
+        .result {
+            background-color: lightyellow;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+        }
+
+        .result-item {
+            background-color: lightgreen;
+            padding: 10px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-Time Test</h1>
+
+    <h2>Form</h2>
+
+    <div class="form">
+        <div class="form-item">
+            <label for="hub">
+                Hub:
+                <input id="hub" name="hub" type="text" class="form-text" autofocus />
+            </label>
+        </div>
+
+        <div class="form-item">
+            <label for="action">
+                Action:
+                <input id="action" name="action" type="text" class="form-text" />
+            </label>
+        </div>
+
+        <div class="form-item">
+            <label for="method">
+                Method:
+                <input id="method" name="method" type="text" class="form-text" />
+            </label>
+        </div>
+
+        <div class="form-item">
+            <input id="connect" type="button" value="Connect">
+            <input id="disconnect" type="button" value="Disconnect" disabled>
+        </div>
+    </div>
+
+    <h2>Result</h2>
+
+    <div class="result" id="result"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.2/signalr.min.js"
+            integrity="sha512-YXK3VHvk8oUFEYl3/DkoQ8dRIQWl7+igjOu1kW5TWKqdrvxCcQU6XgpzFSNMSO6ectu0EedR0aRcGcDFuW7eCA=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
+
+    <script>
+        const connectButton = document.getElementById('connect');
+        const hub = document.getElementById('hub');
+        const action = document.getElementById('action');
+        const method = document.getElementById('method');
+        const disconnectButton = document.getElementById('disconnect');
+        const result = document.getElementById('result');
+
+        let connection;
+
+        connectButton.addEventListener('click', async () => {
+            try {
+                connection = new signalR
+                    .HubConnectionBuilder()
+                    .withUrl(hub.value)
+                    .build();
+
+                await connection
+                    .start()
+                    .then(() => console.info('Started!'))
+                    .catch(console.error);
+
+                connection
+                    .invoke(action.value)
+                    .then(() => console.info('Invoked!'))
+                    .catch(console.error);
+
+                connection.on(method.value, (data) => {
+                    const item = document.createElement('p');
+                    item.className = 'result-item';
+                    item.innerText = data;
+                    result.appendChild(item);
+                    result.scrollTo({
+                        left: 0,
+                        top: result.scrollHeight
+                    });
+                });
+
+                switchFormToResult();
+            } catch (e) {
+                console.error(e);
+            }
+        });
+
+        disconnectButton.addEventListener('click', async () => {
+            try {
+                await connection
+                    .stop()
+                    .then(() => console.info('Stopped!'))
+                    .catch(console.error);
+
+                switchFormToResult();
+            } catch {
+                console.error(e);
+            }
+        });
+
+        const switchFormToResult = () => {
+            const disabled = connectButton.disabled;
+            connectButton.disabled = !disabled;
+            hub.disabled = !disabled;
+            action.disabled = !disabled;
+            method.disabled = !disabled;
+            disconnectButton.disabled = disabled;
+        };
+    </script>
+</body>
+</html>
